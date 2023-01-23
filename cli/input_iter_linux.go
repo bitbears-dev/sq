@@ -48,6 +48,12 @@ func (c *CLI) createInputIter(query string, args []string) (inputIter, error) {
 		return newProcTableIter(fname, f, createTableParser(noTableHeader, createTableRowParser(splitColumnsBySpace, parseProcModulesColumns)))
 	case "/proc/mounts":
 		return newProcTableIter(fname, f, createTableParser(noTableHeader, createTableRowParser(splitColumnsBySpace, parseProcMountsColumns)))
+	case "/proc/net/arp", "/proc/self/net/arp":
+		return newProcTableIter(fname, f, createTableParser(skipTableHeader(1), createTableRowParser(splitColumnsBySpace, parseProcNetArpColumns)))
+	case "/proc/net/dev", "/proc/self/net/dev":
+		return newProcTableIter(fname, f, createTableParser(skipTableHeader(2), createTableRowParser(splitColumnsByColonAndSpace, parseProcNetDevColumns)))
+	case "/proc/net/netlink", "/proc/self/net/netlink":
+		return newProcTableIter(fname, f, createTableParser(skipTableHeader(1), createTableRowParser(splitColumnsBySpace, parseProcNetNetlinkColumns)))
 	case "/proc/vmstat":
 		return newProcMapIter(fname, f, createMapParser(createLineParser(splitLineBySpace, parseProcVmstatValue)))
 	}
@@ -338,6 +344,147 @@ func parseProcMountsColumns(_ []string, columns []string) (map[string]interface{
 		options = append(options, opt)
 	}
 	result["options"] = options
+
+	return result, nil
+}
+
+func parseProcNetArpColumns(_ []string, columns []string) (map[string]interface{}, error) {
+	if len(columns) < 6 {
+		return nil, errors.Errorf("unknown /proc/net/arp format. expected 6 columns but got %d columns", len(columns))
+	}
+
+	result := make(map[string]interface{})
+	result["ip_address"] = columns[0]
+	result["hw_type"] = columns[1]
+	result["flags"] = columns[2]
+	result["hw_address"] = columns[3]
+	result["mask"] = columns[4]
+	result["device"] = columns[5]
+
+	return result, nil
+}
+
+func parseProcNetDevColumns(_ []string, columns []string) (map[string]interface{}, error) {
+	if len(columns) < 17 {
+		return nil, errors.Errorf("unknown /proc/net/dev format. expected 17 columns but got %d columns", len(columns))
+	}
+
+	var err error
+	result := make(map[string]interface{})
+	result["interface"] = columns[0]
+	receive := make(map[string]interface{})
+	receive["bytes"], err = strconv.ParseInt(columns[1], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	receive["packets"], err = strconv.ParseInt(columns[2], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	receive["errs"], err = strconv.ParseInt(columns[3], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	receive["drop"], err = strconv.ParseInt(columns[4], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	receive["fifo"], err = strconv.ParseInt(columns[5], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	receive["frame"], err = strconv.ParseInt(columns[6], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	receive["compressed"], err = strconv.ParseInt(columns[7], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	receive["multicast"], err = strconv.ParseInt(columns[8], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	result["receive"] = receive
+	transmit := make(map[string]interface{})
+	transmit["bytes"], err = strconv.ParseInt(columns[9], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	transmit["packets"], err = strconv.ParseInt(columns[10], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	transmit["errs"], err = strconv.ParseInt(columns[11], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	transmit["drop"], err = strconv.ParseInt(columns[12], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	transmit["fifo"], err = strconv.ParseInt(columns[13], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	transmit["frame"], err = strconv.ParseInt(columns[14], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	transmit["compressed"], err = strconv.ParseInt(columns[15], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	transmit["multicast"], err = strconv.ParseInt(columns[16], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	result["transmit"] = transmit
+
+	return result, nil
+}
+
+func parseProcNetNetlinkColumns(_ []string, columns []string) (map[string]interface{}, error) {
+	if len(columns) < 10 {
+		return nil, errors.Errorf("unknown /proc/net/netlink format. expected 10 columns but got %d columns", len(columns))
+	}
+
+	var err error
+	result := make(map[string]interface{})
+	result["sk"] = columns[0]
+	result["eth"], err = strconv.ParseInt(columns[1], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	result["pid"], err = strconv.ParseInt(columns[2], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	result["groups"] = columns[3]
+	result["rmem"], err = strconv.ParseInt(columns[4], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	result["wmem"], err = strconv.ParseInt(columns[5], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	result["dump"], err = strconv.ParseInt(columns[6], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	result["locks"], err = strconv.ParseInt(columns[7], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	result["drops"], err = strconv.ParseInt(columns[8], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	result["inode"], err = strconv.ParseInt(columns[9], 10, 64)
+	if err != nil {
+		return nil, err
+	}
 
 	return result, nil
 }

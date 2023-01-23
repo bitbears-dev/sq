@@ -334,6 +334,12 @@ func splitColumnsBySpace(row string) ([]string, error) {
 	return reNotSpace.FindAllString(row, -1), nil
 }
 
+var reNotSpaceNorColon = regexp.MustCompile(`[^\s:]+`)
+
+func splitColumnsByColonAndSpace(row string) ([]string, error) {
+	return reNotSpaceNorColon.FindAllString(row, -1), nil
+}
+
 var reInteger = regexp.MustCompile(`^\d+$`)
 
 func isLikelyInteger(s string) bool {
